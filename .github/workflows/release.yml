@@ -218,7 +218,31 @@ jobs:
           test -f dist-electron/preload/index.js
           test -f out/renderer/index.html
 
-      - name: Package & Release (Linux)
+      - name: Package (Linux)
+        run: pnpm exec electron-builder --linux --publish never
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm dist:linux
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          # Create or update release on THIS repo (mbergo/claude-devtools)
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Release $TAG" \
+            --draft \
+            --prerelease \
+            2>/dev/null || true
+          gh release upload "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber \
+            release/*.AppImage \
+            release/*.deb \
+            release/*.rpm \
+            release/*.tar.gz \
+            release/*.pacman \
+            2>/dev/null || true
