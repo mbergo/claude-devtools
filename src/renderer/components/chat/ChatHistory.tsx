@@ -230,9 +230,10 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
     [groupIndexMap, rowVirtualizer, shouldVirtualize]
   );
 
-  // Sticky context button height (py-3 = 12px padding * 2 + button height ~28px + pt-3 = 12px)
-  // Total: approximately 52px, round up to 60px for safety
-  const STICKY_BUTTON_OFFSET = allContextInjections.length > 0 ? 60 : 0;
+  // Sticky header height (pt-3 = 12px top padding + button height ~28px + pb-0)
+  // The sticky header always renders (at minimum the Expand/Collapse button),
+  // so the offset is always needed to prevent scroll targets from hiding behind it.
+  const STICKY_BUTTON_OFFSET = 44;
 
   // Unified navigation controller - replaces useNavigationCoordinator + useSearchContextNavigation
   // Must be created before useAutoScrollBottom so we can pass shouldDisableAutoScroll
