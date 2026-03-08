@@ -6,7 +6,7 @@ import { useTabUI } from '@renderer/hooks/useTabUI';
 import { useVisibleAIGroup } from '@renderer/hooks/useVisibleAIGroup';
 import { useStore } from '@renderer/store';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronsDown } from 'lucide-react';
+import { ChevronsDown, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { SessionContextPanel } from './SessionContextPanel/index';
@@ -50,6 +50,8 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
     expandSubagentTrace,
     selectedContextPhase,
     setSelectedContextPhase,
+    aiGroupsExpandedByDefault,
+    toggleAIGroupsExpandedByDefault,
   } = useTabUI();
 
   // Global store subscriptions (shared data)
@@ -757,9 +759,29 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
           style={{ backgroundColor: 'var(--color-surface)' }}
           onScroll={checkScrollButton}
         >
-          {/* Sticky Context button */}
-          {allContextInjections.length > 0 && (
-            <div className="pointer-events-none sticky top-0 z-10 flex justify-end px-4 pb-0 pt-3">
+          {/* Sticky top buttons */}
+          <div className="pointer-events-none sticky top-0 z-10 flex justify-end gap-2 px-4 pb-0 pt-3">
+            {/* Expand/Collapse all toggle */}
+            <button
+              onClick={toggleAIGroupsExpandedByDefault}
+              className="pointer-events-auto flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs shadow-lg backdrop-blur-md transition-colors"
+              style={{
+                backgroundColor: 'var(--context-btn-bg)',
+                color: 'var(--color-text-secondary)',
+              }}
+              title={
+                aiGroupsExpandedByDefault ? 'Collapse all actions' : 'Expand all actions'
+              }
+            >
+              {aiGroupsExpandedByDefault ? (
+                <ChevronsDownUp className="size-3.5" />
+              ) : (
+                <ChevronsUpDown className="size-3.5" />
+              )}
+              {aiGroupsExpandedByDefault ? 'Collapse All' : 'Expand All'}
+            </button>
+            {/* Context button */}
+            {allContextInjections.length > 0 && (
               <button
                 onClick={() => setContextPanelVisible(!isContextPanelVisible)}
                 onMouseEnter={() => setIsContextButtonHovered(true)}
@@ -778,11 +800,11 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
               >
                 Context ({allContextInjections.length})
               </button>
-            </div>
-          )}
+            )}
+          </div>
           <div
             className="mx-auto max-w-5xl px-6 py-8"
-            style={{ marginTop: allContextInjections.length > 0 ? '-2rem' : 0 }}
+            style={{ marginTop: '-2rem' }}
           >
             <div className="space-y-8">
               {shouldVirtualize ? (
