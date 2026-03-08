@@ -35,7 +35,7 @@ error: string | null
 
 ## Key Pattern: Per-Tab UI Isolation
 `tabUISlice` maintains independent UI state per tab using tabId:
-- `expandedAIGroupIds`, `expandedDisplayItemIds`, `expandedSubagentTraceIds`
+- `toggledAIGroupIds`, `expandedDisplayItemIds`, `expandedSubagentTraceIds`
 - Ensures expanding a group in tab A doesn't affect tab B
 
 ## Store Initialization

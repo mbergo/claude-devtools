@@ -41,7 +41,7 @@ describe('tabUISlice', () => {
 
       const tabState = store.getState().tabUIStates.get('tab-1');
       expect(tabState?.aiGroupsExpandedByDefault).toBe(true);
-      expect(tabState?.expandedAIGroupIds.size).toBe(0);
+      expect(tabState?.toggledAIGroupIds.size).toBe(0);
       expect(tabState?.expandedDisplayItemIds.size).toBe(0);
       expect(tabState?.expandedSubagentTraceIds.size).toBe(0);
       expect(tabState?.showContextPanel).toBe(false);

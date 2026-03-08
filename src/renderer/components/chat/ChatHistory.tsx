@@ -104,6 +104,7 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
 
   // State for Context button hover (local state OK - doesn't need per-tab isolation)
   const [isContextButtonHovered, setIsContextButtonHovered] = useState(false);
+  const [isExpandButtonHovered, setIsExpandButtonHovered] = useState(false);
 
   // Determine if this tab instance is currently active
   // Use tabId prop if provided, otherwise fall back to activeTabId (for backwards compatibility)
@@ -764,9 +765,13 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
             {/* Expand/Collapse all toggle */}
             <button
               onClick={toggleAIGroupsExpandedByDefault}
+              onMouseEnter={() => setIsExpandButtonHovered(true)}
+              onMouseLeave={() => setIsExpandButtonHovered(false)}
               className="pointer-events-auto flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs shadow-lg backdrop-blur-md transition-colors"
               style={{
-                backgroundColor: 'var(--context-btn-bg)',
+                backgroundColor: isExpandButtonHovered
+                  ? 'var(--context-btn-bg-hover)'
+                  : 'var(--context-btn-bg)',
                 color: 'var(--color-text-secondary)',
               }}
               title={

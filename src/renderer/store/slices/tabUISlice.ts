@@ -22,7 +22,7 @@ import type { StateCreator } from 'zustand';
 
 /**
  * UI state for a single tab.
- * All values are optional - defaults are applied when reading.
+ * All required fields are initialized via createDefaultTabUIState; savedScrollTop is optional.
  */
 export interface TabUIState {
   /** Whether AI groups are expanded by default (true = expanded, false = collapsed) */
@@ -33,7 +33,7 @@ export interface TabUIState {
    * When aiGroupsExpandedByDefault is true, this set tracks collapsed groups.
    * When aiGroupsExpandedByDefault is false, this set tracks expanded groups.
    */
-  expandedAIGroupIds: Set<string>;
+  toggledAIGroupIds: Set<string>;
 
   /** Which display items within AI groups are expanded: Map<aiGroupId, Set<itemId>> */
   expandedDisplayItemIds: Map<string, Set<string>>;
@@ -57,7 +57,7 @@ export interface TabUIState {
 function createDefaultTabUIState(): TabUIState {
   return {
     aiGroupsExpandedByDefault: true,
-    expandedAIGroupIds: new Set(),
+    toggledAIGroupIds: new Set(),
     expandedDisplayItemIds: new Map(),
     expandedSubagentTraceIds: new Set(),
     showContextPanel: false,
@@ -163,21 +163,21 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
     const newMap = new Map(state.tabUIStates);
     const tabState = newMap.get(tabId) ?? createDefaultTabUIState();
 
-    const newExpandedIds = new Set(tabState.expandedAIGroupIds);
-    if (newExpandedIds.has(aiGroupId)) {
-      newExpandedIds.delete(aiGroupId);
+    const newToggledIds = new Set(tabState.toggledAIGroupIds);
+    if (newToggledIds.has(aiGroupId)) {
+      newToggledIds.delete(aiGroupId);
     } else {
-      newExpandedIds.add(aiGroupId);
+      newToggledIds.add(aiGroupId);
     }
 
-    newMap.set(tabId, { ...tabState, expandedAIGroupIds: newExpandedIds });
+    newMap.set(tabId, { ...tabState, toggledAIGroupIds: newToggledIds });
     set({ tabUIStates: newMap });
   },
 
   isAIGroupExpandedForTab: (tabId: string, aiGroupId: string) => {
     const tabState = get().tabUIStates.get(tabId);
     const expandedByDefault = tabState?.aiGroupsExpandedByDefault ?? true;
-    const isManuallyToggled = tabState?.expandedAIGroupIds.has(aiGroupId) ?? false;
+    const isManuallyToggled = tabState?.toggledAIGroupIds.has(aiGroupId) ?? false;
     // XOR: if default is expanded and group is toggled, it's collapsed (and vice versa)
     return expandedByDefault !== isManuallyToggled;
   },
@@ -191,8 +191,9 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
     const currentTabState = newMap.get(tabId) ?? createDefaultTabUIState();
 
     // Toggle the override to make it expanded
-    const newOverrides = new Set(currentTabState.expandedAIGroupIds);
-    if (currentTabState.aiGroupsExpandedByDefault) {
+    const expandedByDefault = currentTabState.aiGroupsExpandedByDefault ?? true;
+    const newOverrides = new Set(currentTabState.toggledAIGroupIds);
+    if (expandedByDefault) {
       // Default is expanded, so this group must be in the override set (collapsed).
       // Remove it from overrides to restore to default (expanded).
       newOverrides.delete(aiGroupId);
@@ -201,7 +202,7 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
       newOverrides.add(aiGroupId);
     }
 
-    newMap.set(tabId, { ...currentTabState, expandedAIGroupIds: newOverrides });
+    newMap.set(tabId, { ...currentTabState, toggledAIGroupIds: newOverrides });
     set({ tabUIStates: newMap });
   },
 
@@ -216,10 +217,11 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
     const tabState = newMap.get(tabId) ?? createDefaultTabUIState();
 
     // Toggle the default and clear all manual overrides
+    const expandedByDefault = tabState.aiGroupsExpandedByDefault ?? true;
     newMap.set(tabId, {
       ...tabState,
-      aiGroupsExpandedByDefault: !tabState.aiGroupsExpandedByDefault,
-      expandedAIGroupIds: new Set(),
+      aiGroupsExpandedByDefault: !expandedByDefault,
+      toggledAIGroupIds: new Set(),
     });
     set({ tabUIStates: newMap });
   },

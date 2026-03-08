@@ -112,7 +112,7 @@ export function useTabUI(): UseTabUIReturn {
   const isAIGroupExpanded = useCallback(
     (aiGroupId: string): boolean => {
       const expandedByDefault = tabState?.aiGroupsExpandedByDefault ?? true;
-      const isManuallyToggled = tabState?.expandedAIGroupIds.has(aiGroupId) ?? false;
+      const isManuallyToggled = tabState?.toggledAIGroupIds.has(aiGroupId) ?? false;
       return expandedByDefault !== isManuallyToggled;
     },
     [tabState]
