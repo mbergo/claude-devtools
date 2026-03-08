@@ -35,6 +35,8 @@ interface UseTabUIReturn {
   isAIGroupExpanded: (aiGroupId: string) => boolean;
   toggleAIGroupExpansion: (aiGroupId: string) => void;
   expandAIGroup: (aiGroupId: string) => void;
+  aiGroupsExpandedByDefault: boolean;
+  toggleAIGroupsExpandedByDefault: () => void;
   getExpandedDisplayItemIds: (aiGroupId: string) => Set<string>;
   toggleDisplayItemExpansion: (aiGroupId: string, itemId: string) => void;
   expandDisplayItem: (aiGroupId: string, itemId: string) => void;
@@ -77,6 +79,7 @@ export function useTabUI(): UseTabUIReturn {
   const {
     toggleAIGroupExpansionForTab,
     expandAIGroupForTab,
+    toggleAIGroupsExpandedByDefaultForTab,
     toggleDisplayItemExpansionForTab,
     expandDisplayItemForTab,
     toggleSubagentTraceExpansionForTab,
@@ -89,6 +92,7 @@ export function useTabUI(): UseTabUIReturn {
     useShallow((s) => ({
       toggleAIGroupExpansionForTab: s.toggleAIGroupExpansionForTab,
       expandAIGroupForTab: s.expandAIGroupForTab,
+      toggleAIGroupsExpandedByDefaultForTab: s.toggleAIGroupsExpandedByDefaultForTab,
       toggleDisplayItemExpansionForTab: s.toggleDisplayItemExpansionForTab,
       expandDisplayItemForTab: s.expandDisplayItemForTab,
       toggleSubagentTraceExpansionForTab: s.toggleSubagentTraceExpansionForTab,
@@ -107,7 +111,9 @@ export function useTabUI(): UseTabUIReturn {
   // AI Group expansion - check directly from tabState
   const isAIGroupExpanded = useCallback(
     (aiGroupId: string): boolean => {
-      return tabState?.expandedAIGroupIds.has(aiGroupId) ?? false;
+      const expandedByDefault = tabState?.aiGroupsExpandedByDefault ?? true;
+      const isManuallyToggled = tabState?.toggledAIGroupIds.has(aiGroupId) ?? false;
+      return expandedByDefault !== isManuallyToggled;
     },
     [tabState]
   );
@@ -127,6 +133,14 @@ export function useTabUI(): UseTabUIReturn {
     },
     [tabId, expandAIGroupForTab]
   );
+
+  // AI Groups expanded by default - derive from tabState
+  const aiGroupsExpandedByDefault = tabState?.aiGroupsExpandedByDefault ?? true;
+
+  const toggleAIGroupsExpandedByDefault = useCallback((): void => {
+    if (!tabId) return;
+    toggleAIGroupsExpandedByDefaultForTab(tabId);
+  }, [tabId, toggleAIGroupsExpandedByDefaultForTab]);
 
   // Display item expansion - derive from tabState
   const getExpandedDisplayItemIds = useCallback(
@@ -223,6 +237,8 @@ export function useTabUI(): UseTabUIReturn {
     isAIGroupExpanded,
     toggleAIGroupExpansion,
     expandAIGroup,
+    aiGroupsExpandedByDefault,
+    toggleAIGroupsExpandedByDefault,
 
     // Display item expansion
     getExpandedDisplayItemIds,

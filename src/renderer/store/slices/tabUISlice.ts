@@ -22,11 +22,18 @@ import type { StateCreator } from 'zustand';
 
 /**
  * UI state for a single tab.
- * All values are optional - defaults are applied when reading.
+ * All required fields are initialized via createDefaultTabUIState; savedScrollTop is optional.
  */
 export interface TabUIState {
-  /** Which AI groups are expanded (by aiGroupId) */
-  expandedAIGroupIds: Set<string>;
+  /** Whether AI groups are expanded by default (true = expanded, false = collapsed) */
+  aiGroupsExpandedByDefault: boolean;
+
+  /**
+   * AI groups that have been manually toggled away from the default.
+   * When aiGroupsExpandedByDefault is true, this set tracks collapsed groups.
+   * When aiGroupsExpandedByDefault is false, this set tracks expanded groups.
+   */
+  toggledAIGroupIds: Set<string>;
 
   /** Which display items within AI groups are expanded: Map<aiGroupId, Set<itemId>> */
   expandedDisplayItemIds: Map<string, Set<string>>;
@@ -49,7 +56,8 @@ export interface TabUIState {
  */
 function createDefaultTabUIState(): TabUIState {
   return {
-    expandedAIGroupIds: new Set(),
+    aiGroupsExpandedByDefault: true,
+    toggledAIGroupIds: new Set(),
     expandedDisplayItemIds: new Map(),
     expandedSubagentTraceIds: new Set(),
     showContextPanel: false,
@@ -79,6 +87,10 @@ export interface TabUISlice {
   isAIGroupExpandedForTab: (tabId: string, aiGroupId: string) => boolean;
   /** Expand AI group for a specific tab (for auto-expand scenarios) */
   expandAIGroupForTab: (tabId: string, aiGroupId: string) => void;
+  /** Get whether AI groups are expanded by default for a specific tab */
+  getAIGroupsExpandedByDefaultForTab: (tabId: string) => boolean;
+  /** Toggle the expand-by-default setting for a specific tab (clears manual overrides) */
+  toggleAIGroupsExpandedByDefaultForTab: (tabId: string) => void;
 
   // Display item expansion (per-tab)
   /** Toggle display item expansion within an AI group for a specific tab */
@@ -151,34 +163,66 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
     const newMap = new Map(state.tabUIStates);
     const tabState = newMap.get(tabId) ?? createDefaultTabUIState();
 
-    const newExpandedIds = new Set(tabState.expandedAIGroupIds);
-    if (newExpandedIds.has(aiGroupId)) {
-      newExpandedIds.delete(aiGroupId);
+    const newToggledIds = new Set(tabState.toggledAIGroupIds);
+    if (newToggledIds.has(aiGroupId)) {
+      newToggledIds.delete(aiGroupId);
     } else {
-      newExpandedIds.add(aiGroupId);
+      newToggledIds.add(aiGroupId);
     }
 
-    newMap.set(tabId, { ...tabState, expandedAIGroupIds: newExpandedIds });
+    newMap.set(tabId, { ...tabState, toggledAIGroupIds: newToggledIds });
     set({ tabUIStates: newMap });
   },
 
   isAIGroupExpandedForTab: (tabId: string, aiGroupId: string) => {
     const tabState = get().tabUIStates.get(tabId);
-    return tabState?.expandedAIGroupIds.has(aiGroupId) ?? false;
+    const expandedByDefault = tabState?.aiGroupsExpandedByDefault ?? true;
+    const isManuallyToggled = tabState?.toggledAIGroupIds.has(aiGroupId) ?? false;
+    // XOR: if default is expanded and group is toggled, it's collapsed (and vice versa)
+    return expandedByDefault !== isManuallyToggled;
   },
 
   expandAIGroupForTab: (tabId: string, aiGroupId: string) => {
     const state = get();
-    const tabState = state.tabUIStates.get(tabId);
-    if (tabState?.expandedAIGroupIds.has(aiGroupId)) return; // Already expanded
+    // Already expanded? No-op.
+    if (state.isAIGroupExpandedForTab(tabId, aiGroupId)) return;
 
     const newMap = new Map(state.tabUIStates);
     const currentTabState = newMap.get(tabId) ?? createDefaultTabUIState();
 
-    const newExpandedIds = new Set(currentTabState.expandedAIGroupIds);
-    newExpandedIds.add(aiGroupId);
+    // Toggle the override to make it expanded
+    const expandedByDefault = currentTabState.aiGroupsExpandedByDefault ?? true;
+    const newOverrides = new Set(currentTabState.toggledAIGroupIds);
+    if (expandedByDefault) {
+      // Default is expanded, so this group must be in the override set (collapsed).
+      // Remove it from overrides to restore to default (expanded).
+      newOverrides.delete(aiGroupId);
+    } else {
+      // Default is collapsed, add to overrides to expand.
+      newOverrides.add(aiGroupId);
+    }
 
-    newMap.set(tabId, { ...currentTabState, expandedAIGroupIds: newExpandedIds });
+    newMap.set(tabId, { ...currentTabState, toggledAIGroupIds: newOverrides });
+    set({ tabUIStates: newMap });
+  },
+
+  getAIGroupsExpandedByDefaultForTab: (tabId: string) => {
+    const tabState = get().tabUIStates.get(tabId);
+    return tabState?.aiGroupsExpandedByDefault ?? true;
+  },
+
+  toggleAIGroupsExpandedByDefaultForTab: (tabId: string) => {
+    const state = get();
+    const newMap = new Map(state.tabUIStates);
+    const tabState = newMap.get(tabId) ?? createDefaultTabUIState();
+
+    // Toggle the default and clear all manual overrides
+    const expandedByDefault = tabState.aiGroupsExpandedByDefault ?? true;
+    newMap.set(tabId, {
+      ...tabState,
+      aiGroupsExpandedByDefault: !expandedByDefault,
+      toggledAIGroupIds: new Set(),
+    });
     set({ tabUIStates: newMap });
   },
 
