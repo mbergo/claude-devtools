@@ -38,6 +38,7 @@ interface UseTabUIReturn {
   getExpandedDisplayItemIds: (aiGroupId: string) => Set<string>;
   toggleDisplayItemExpansion: (aiGroupId: string, itemId: string) => void;
   expandDisplayItem: (aiGroupId: string, itemId: string) => void;
+  setDisplayItemsExpansion: (aiGroupId: string, itemIds: Set<string>) => void;
   isSubagentTraceExpanded: (subagentId: string) => boolean;
   toggleSubagentTraceExpansion: (subagentId: string) => void;
   expandSubagentTrace: (subagentId: string) => void;
@@ -79,6 +80,7 @@ export function useTabUI(): UseTabUIReturn {
     expandAIGroupForTab,
     toggleDisplayItemExpansionForTab,
     expandDisplayItemForTab,
+    setDisplayItemsExpansionForTab,
     toggleSubagentTraceExpansionForTab,
     expandSubagentTraceForTab,
     setContextPanelVisibleForTab,
@@ -91,6 +93,7 @@ export function useTabUI(): UseTabUIReturn {
       expandAIGroupForTab: s.expandAIGroupForTab,
       toggleDisplayItemExpansionForTab: s.toggleDisplayItemExpansionForTab,
       expandDisplayItemForTab: s.expandDisplayItemForTab,
+      setDisplayItemsExpansionForTab: s.setDisplayItemsExpansionForTab,
       toggleSubagentTraceExpansionForTab: s.toggleSubagentTraceExpansionForTab,
       expandSubagentTraceForTab: s.expandSubagentTraceForTab,
       setContextPanelVisibleForTab: s.setContextPanelVisibleForTab,
@@ -150,6 +153,14 @@ export function useTabUI(): UseTabUIReturn {
       expandDisplayItemForTab(tabId, aiGroupId, itemId);
     },
     [tabId, expandDisplayItemForTab]
+  );
+
+  const setDisplayItemsExpansion = useCallback(
+    (aiGroupId: string, itemIds: Set<string>): void => {
+      if (!tabId) return;
+      setDisplayItemsExpansionForTab(tabId, aiGroupId, itemIds);
+    },
+    [tabId, setDisplayItemsExpansionForTab]
   );
 
   // Subagent trace expansion - derive from tabState
@@ -228,6 +239,7 @@ export function useTabUI(): UseTabUIReturn {
     getExpandedDisplayItemIds,
     toggleDisplayItemExpansion,
     expandDisplayItem,
+    setDisplayItemsExpansion,
 
     // Subagent trace expansion
     isSubagentTraceExpanded,

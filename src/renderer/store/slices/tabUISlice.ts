@@ -87,6 +87,8 @@ export interface TabUISlice {
   getExpandedDisplayItemIdsForTab: (tabId: string, aiGroupId: string) => Set<string>;
   /** Expand a display item for a specific tab (for auto-expand scenarios) */
   expandDisplayItemForTab: (tabId: string, aiGroupId: string, itemId: string) => void;
+  /** Set all expanded display item IDs for an AI group in a specific tab */
+  setDisplayItemsExpansionForTab: (tabId: string, aiGroupId: string, itemIds: Set<string>) => void;
 
   // Subagent trace expansion (per-tab)
   /** Toggle subagent trace expansion for a specific tab */
@@ -224,6 +226,18 @@ export const createTabUISlice: StateCreator<AppState, [], [], TabUISlice> = (set
     const newSet = new Set(newDisplayItemMap.get(aiGroupId) ?? new Set<string>());
     newSet.add(itemId);
     newDisplayItemMap.set(aiGroupId, newSet);
+
+    newMap.set(tabId, { ...currentTabState, expandedDisplayItemIds: newDisplayItemMap });
+    set({ tabUIStates: newMap });
+  },
+
+  setDisplayItemsExpansionForTab: (tabId: string, aiGroupId: string, itemIds: Set<string>) => {
+    const state = get();
+    const newMap = new Map(state.tabUIStates);
+    const currentTabState = newMap.get(tabId) ?? createDefaultTabUIState();
+
+    const newDisplayItemMap = new Map(currentTabState.expandedDisplayItemIds);
+    newDisplayItemMap.set(aiGroupId, new Set(itemIds));
 
     newMap.set(tabId, { ...currentTabState, expandedDisplayItemIds: newDisplayItemMap });
     set({ tabUIStates: newMap });
