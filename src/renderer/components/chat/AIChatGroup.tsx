@@ -553,7 +553,7 @@ const AIChatGroupInner = ({
       {/* Expandable Content */}
       {hasToggleContent && isExpanded && (
         <div className="py-2 pl-2">
-          {/* Expand/Collapse All toggle */}
+          {/* Expand/Collapse All toggle — only shown when there are multiple items */}
           {allItemIds.size > 1 && (
             <div className="mb-2 flex justify-end">
               <button
