@@ -1,0 +1,57 @@
+name: Build .deb Package
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Python for node-gyp
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Verify build output
+        run: |
+          test -f dist-electron/main/index.cjs
+          test -f dist-electron/preload/index.js
+          test -f out/renderer/index.html
+
+      - name: Package .deb (amd64)
+        run: pnpm exec electron-builder --linux deb --x64 --publish never
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-devtools-deb-amd64
+          path: release/*.deb
+          retention-days: 30
