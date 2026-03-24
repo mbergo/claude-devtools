@@ -8,7 +8,7 @@ import { extractSlashInfo, isCommandContent } from '@shared/utils/contentSanitiz
 import { getModelColorClass } from '@shared/utils/modelParser';
 import { estimateTokens } from '@shared/utils/tokenFormatting';
 import { format } from 'date-fns';
-import { Bot, ChevronDown, Clock } from 'lucide-react';
+import { Bot, ChevronDown, ChevronsDownUp, ChevronsUpDown, Clock } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { TokenUsageDisplay } from '../common/TokenUsageDisplay';
@@ -134,6 +134,7 @@ const AIChatGroupInner = ({
     getExpandedDisplayItemIds,
     toggleDisplayItemExpansion,
     expandDisplayItem,
+    setDisplayItemsExpansion,
   } = useTabUI();
 
   // Per-tab session data, falling back to global state
@@ -387,6 +388,58 @@ const AIChatGroupInner = ({
     toggleDisplayItemExpansion(aiGroup.id, itemId);
   };
 
+  // Compute all expandable item IDs from display items
+  const allItemIds = useMemo(() => {
+    const ids = new Set<string>();
+    enhanced.displayItems.forEach((item, index) => {
+      switch (item.type) {
+        case 'thinking':
+          ids.add(`thinking-${index}`);
+          break;
+        case 'output':
+          ids.add(`output-${index}`);
+          break;
+        case 'tool':
+          ids.add(`tool-${item.tool.id}-${index}`);
+          break;
+        case 'subagent':
+          ids.add(`subagent-${item.subagent.id}-${index}`);
+          break;
+        case 'slash':
+          ids.add(`slash-${item.slash.name}-${index}`);
+          break;
+        case 'teammate_message':
+          ids.add(`teammate-${item.teammateMessage.id}-${index}`);
+          break;
+        case 'subagent_input':
+          ids.add(`input-${index}`);
+          break;
+        case 'compact_boundary':
+          ids.add(`compact-${index}`);
+          break;
+      }
+    });
+    return ids;
+  }, [enhanced.displayItems]);
+
+  // Determine if all items are currently expanded
+  const areAllItemsExpanded = useMemo(() => {
+    if (allItemIds.size === 0) return false;
+    for (const id of allItemIds) {
+      if (!expandedItemIds.has(id)) return false;
+    }
+    return true;
+  }, [allItemIds, expandedItemIds]);
+
+  // Toggle expand/collapse all display items
+  const handleToggleAllItems = useCallback((): void => {
+    if (areAllItemsExpanded) {
+      setDisplayItemsExpansion(aiGroup.id, new Set<string>());
+    } else {
+      setDisplayItemsExpansion(aiGroup.id, allItemIds);
+    }
+  }, [areAllItemsExpanded, aiGroup.id, allItemIds, setDisplayItemsExpansion]);
+
   return (
     <div className="space-y-3 border-l-2 pl-3" style={{ borderColor: 'var(--chat-ai-border)' }}>
       {/* Header Row */}
@@ -500,6 +553,29 @@ const AIChatGroupInner = ({
       {/* Expandable Content */}
       {hasToggleContent && isExpanded && (
         <div className="py-2 pl-2">
+          {/* Expand/Collapse All toggle */}
+          {allItemIds.size > 1 && (
+            <div className="mb-2 flex justify-end">
+              <button
+                onClick={handleToggleAllItems}
+                className="flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors hover:bg-white/5"
+                style={{ color: COLOR_TEXT_MUTED }}
+                title={areAllItemsExpanded ? 'Collapse all items' : 'Expand all items'}
+              >
+                {areAllItemsExpanded ? (
+                  <>
+                    <ChevronsDownUp className="size-3" />
+                    Collapse all
+                  </>
+                ) : (
+                  <>
+                    <ChevronsUpDown className="size-3" />
+                    Expand all
+                  </>
+                )}
+              </button>
+            </div>
+          )}
           <DisplayItemList
             items={enhanced.displayItems}
             onItemClick={handleItemClick}

@@ -195,6 +195,69 @@ describe('tabUISlice', () => {
         store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1').has('item-1')
       ).toBe(true);
     });
+
+    it('should expand all display items at once', () => {
+      store.getState().initTabUIState('tab-1');
+
+      const allIds = new Set(['item-1', 'item-2', 'item-3']);
+      store.getState().setDisplayItemsExpansionForTab('tab-1', 'group-1', allIds);
+
+      const expanded = store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1');
+      expect(expanded.size).toBe(3);
+      expect(expanded.has('item-1')).toBe(true);
+      expect(expanded.has('item-2')).toBe(true);
+      expect(expanded.has('item-3')).toBe(true);
+    });
+
+    it('should collapse all display items at once', () => {
+      store.getState().initTabUIState('tab-1');
+
+      // First expand some items
+      store.getState().toggleDisplayItemExpansionForTab('tab-1', 'group-1', 'item-1');
+      store.getState().toggleDisplayItemExpansionForTab('tab-1', 'group-1', 'item-2');
+      expect(
+        store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1').size
+      ).toBe(2);
+
+      // Collapse all by setting empty set
+      store.getState().setDisplayItemsExpansionForTab('tab-1', 'group-1', new Set());
+
+      const expanded = store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1');
+      expect(expanded.size).toBe(0);
+    });
+
+    it('should isolate setDisplayItemsExpansion between tabs', () => {
+      store.getState().initTabUIState('tab-1');
+      store.getState().initTabUIState('tab-2');
+
+      // Expand all in tab-1
+      store.getState().setDisplayItemsExpansionForTab('tab-1', 'group-1', new Set(['a', 'b', 'c']));
+
+      // tab-2 should still be empty
+      expect(
+        store.getState().getExpandedDisplayItemIdsForTab('tab-2', 'group-1').size
+      ).toBe(0);
+      expect(
+        store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1').size
+      ).toBe(3);
+    });
+
+    it('should replace existing expanded items when setting', () => {
+      store.getState().initTabUIState('tab-1');
+
+      // Expand items 1 and 2
+      store.getState().toggleDisplayItemExpansionForTab('tab-1', 'group-1', 'item-1');
+      store.getState().toggleDisplayItemExpansionForTab('tab-1', 'group-1', 'item-2');
+
+      // Set to only item-3
+      store.getState().setDisplayItemsExpansionForTab('tab-1', 'group-1', new Set(['item-3']));
+
+      const expanded = store.getState().getExpandedDisplayItemIdsForTab('tab-1', 'group-1');
+      expect(expanded.size).toBe(1);
+      expect(expanded.has('item-1')).toBe(false);
+      expect(expanded.has('item-2')).toBe(false);
+      expect(expanded.has('item-3')).toBe(true);
+    });
   });
 
   describe('Subagent trace expansion - per-tab isolation', () => {
